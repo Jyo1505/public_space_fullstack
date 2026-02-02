@@ -1,3 +1,4 @@
+const API_BASE = "https://public-space-fullstack-1.onrender.com";
 // Tabs
 const tabLogin = document.getElementById("tab-login");
 const tabRegister = document.getElementById("tab-register");
@@ -18,7 +19,7 @@ tabRegister.addEventListener("click", () => {
   loginForm.classList.remove("active");
 });
 
-const API_BASE = "/api/auth";
+// const API_BASE = "/api/auth";
 
 // REGISTER
 registerForm.addEventListener("submit", async (e) => {
@@ -31,7 +32,7 @@ registerForm.addEventListener("submit", async (e) => {
   msgEl.textContent = "Registering...";
 
   try {
-    const res = await fetch(`${API_BASE}/register`, {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
@@ -62,7 +63,7 @@ loginForm.addEventListener("submit", async (e) => {
   msgEl.textContent = "Logging in...";
 
   try {
-    const res = await fetch(`${API_BASE}/login`, {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -222,7 +223,7 @@ loginForm.addEventListener("submit", async (e) => {
     registerBtn.textContent = "Registering...";
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
