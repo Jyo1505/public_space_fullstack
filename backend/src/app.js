@@ -14,7 +14,9 @@ app.use("/uploads", express.static(
 
 // TEMP CORS (OK since frontend not deployed yet)
 app.use(cors());
-
+app.get("/", (req, res) => {
+  res.send("🚀 Public Space Backend is Running");
+});
 // Health check
 app.get("/api", (req, res) => {
   res.send("Backend API is running ✅");
