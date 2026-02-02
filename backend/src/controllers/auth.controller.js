@@ -2,13 +2,13 @@
 
 // src/controllers/auth.controller.js
 
-exports.register = (req, res) => { 
-  res.send("Register API working");
-};
+// exports.register = (req, res) => { 
+//   res.send("Register API working");
+// };
 
-exports.login = (req, res) => {
-  res.send("Login API working");
-};
+// exports.login = (req, res) => {
+//   res.send("Login API working");
+// };
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
