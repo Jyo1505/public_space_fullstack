@@ -1,10 +1,15 @@
 const db = require("../config/db");
+const { generateId } = require("../utils/id");
 
+/**
+ * Send friend request
+ */
 async function sendRequest(fromUserId, toUserId) {
   // Check if already friends
   const [existingFriend] = await db.query(
-    `SELECT * FROM friendships 
-     WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)`,
+    `SELECT 1 FROM friendships
+     WHERE (user1_id = ? AND user2_id = ?)
+        OR (user1_id = ? AND user2_id = ?)`,
     [fromUserId, toUserId, toUserId, fromUserId]
   );
   if (existingFriend.length > 0) {
@@ -13,7 +18,7 @@ async function sendRequest(fromUserId, toUserId) {
 
   // Check if request already exists
   const [existingReq] = await db.query(
-    `SELECT * FROM friend_requests
+    `SELECT 1 FROM friend_requests
      WHERE from_user_id = ? AND to_user_id = ? AND status = 'pending'`,
     [fromUserId, toUserId]
   );
@@ -21,13 +26,20 @@ async function sendRequest(fromUserId, toUserId) {
     throw new Error("Friend request already sent");
   }
 
-  const [result] = await db.query(
-    "INSERT INTO friend_requests (from_user_id, to_user_id) VALUES (?, ?)",
-    [fromUserId, toUserId]
+  const id = generateId();
+
+  await db.query(
+    `INSERT INTO friend_requests (id, from_user_id, to_user_id, status)
+     VALUES (?, ?, ?, 'pending')`,
+    [id, fromUserId, toUserId]
   );
-  return result.insertId;
+
+  return id;
 }
 
+/**
+ * Get incoming friend requests
+ */
 async function getIncomingRequests(userId) {
   const [rows] = await db.query(
     `SELECT fr.id, u.id AS from_user_id, u.name, u.email
@@ -39,18 +51,22 @@ async function getIncomingRequests(userId) {
   return rows;
 }
 
+/**
+ * Accept friend request
+ */
 async function acceptRequest(requestId, userId) {
-  // Get request
   const [rows] = await db.query(
-    "SELECT * FROM friend_requests WHERE id = ? AND to_user_id = ?",
+    `SELECT * FROM friend_requests
+     WHERE id = ? AND to_user_id = ? AND status = 'pending'`,
     [requestId, userId]
   );
+
   const req = rows[0];
   if (!req) throw new Error("Request not found");
 
   // Mark as accepted
   await db.query(
-    "UPDATE friend_requests SET status = 'accepted' WHERE id = ?",
+    `UPDATE friend_requests SET status = 'accepted' WHERE id = ?`,
     [requestId]
   );
 
@@ -59,22 +75,30 @@ async function acceptRequest(requestId, userId) {
   const u2 = Math.max(req.from_user_id, req.to_user_id);
 
   await db.query(
-    "INSERT IGNORE INTO friendships (user1_id, user2_id) VALUES (?, ?)",
-    [u1, u2]
+    `INSERT IGNORE INTO friendships (id, user1_id, user2_id)
+     VALUES (?, ?, ?)`,
+    [generateId(), u1, u2]
   );
 }
 
+/**
+ * Get friends list
+ */
 async function getFriends(userId) {
   const [rows] = await db.query(
     `SELECT u.id, u.name, u.email
      FROM friendships f
-     JOIN users u ON (u.id = IF(f.user1_id = ?, f.user2_id, f.user1_id))
+     JOIN users u
+       ON u.id = IF(f.user1_id = ?, f.user2_id, f.user1_id)
      WHERE f.user1_id = ? OR f.user2_id = ?`,
     [userId, userId, userId]
   );
   return rows;
 }
 
+/**
+ * Get friend count
+ */
 async function getFriendCount(userId) {
   const [rows] = await db.query(
     `SELECT COUNT(*) AS count
@@ -84,6 +108,10 @@ async function getFriendCount(userId) {
   );
   return rows[0].count;
 }
+
+/**
+ * Get friend IDs
+ */
 async function getFriendIds(userId) {
   const [rows] = await db.query(
     `SELECT user1_id AS friend_id FROM friendships WHERE user2_id = ?
@@ -94,16 +122,22 @@ async function getFriendIds(userId) {
   return rows.map(r => r.friend_id);
 }
 
-
-// NEW: remove friendship between two users (both directions)
+/**
+ * Remove friend
+ */
 async function removeFriend(userA, userB) {
-  // remove any friendship row where those two users are paired
-  await db.query(
+  const [result] = await db.query(
     `DELETE FROM friendships
-     WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)`,
+     WHERE (user1_id = ? AND user2_id = ?)
+        OR (user1_id = ? AND user2_id = ?)`,
     [userA, userB, userB, userA]
   );
+
+  if (result.affectedRows === 0) {
+    throw new Error("Friendship not found");
+  }
 }
+
 module.exports = {
   sendRequest,
   getIncomingRequests,
@@ -112,23 +146,4 @@ module.exports = {
   getFriendCount,
   getFriendIds,
   removeFriend,
-};
-
-
-exports.removeFriend = async (userId, friendId) => {
-  // friendship can exist in either direction
-  const [result] = await db.query(
-    `
-    DELETE FROM friends
-    WHERE 
-      (user_id = ? AND friend_id = ?)
-      OR
-      (user_id = ? AND friend_id = ?)
-    `,
-    [userId, friendId, friendId, userId]
-  );
-
-  if (result.affectedRows === 0) {
-    throw new Error("Friendship not found");
-  }
 };
