@@ -102,8 +102,30 @@ myPostsEl.innerHTML = "";
         const id = p.id ?? "";
         const userName = escapeHtml(p.user_name ?? "Unknown");
         const text = escapeHtml(p.content_text ?? "");
-        const media = p.media_url ? `<div class="post-media"><img src="${escapeHtml(p.media_url)}" alt="media" /></div>` : "";
-        const dateStr = p.created_at ? new Date(p.created_at).toLocaleString() : "";
+      let media = "";
+
+if (p.media_url) {
+  if (p.media_type === "image") {
+    media = `
+      <div class="post-media">
+        <img 
+          src="${p.media_url}" 
+          alt="media"
+          onerror="this.parentElement.style.display='none'"
+        />
+      </div>`;
+  } else if (p.media_type === "video") {
+    media = `
+      <div class="post-media">
+        <video controls
+          onerror="this.parentElement.style.display='none'">
+          <source src="${p.media_url}">
+        </video>
+      </div>`;
+  }
+}
+
+   const dateStr = p.created_at ? new Date(p.created_at).toLocaleString() : "";
 
         // like/comment metadata from server (if present)
         const likeCount = (typeof p.like_count !== "undefined") ? p.like_count : (p.likeCount ?? 0);
