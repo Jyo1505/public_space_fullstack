@@ -31,7 +31,8 @@ exports.createPost = async (req, res) => {
     if (req.file) {
       console.log("createPost: received file", req.file.filename, req.file.mimetype);
       // assuming you serve uploads with app.use('/uploads', express.static(...))
-      media_url = `/uploads/${req.file.filename}`;
+     media_url = `${process.env.BACKEND_URL}/uploads/${req.file.filename}`;
+
       if (req.file.mimetype.startsWith("image/")) media_type = "image";
       else if (req.file.mimetype.startsWith("video/")) media_type = "video";
       else media_type = "file";
