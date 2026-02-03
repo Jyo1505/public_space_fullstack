@@ -522,11 +522,25 @@ function initPostCreation() {
       const text = await res.text();
       try { data = JSON.parse(text); } catch (e) { data = { message: text }; }
 
-      if (!res.ok) {
-        console.error("POST /api/posts/create failed:", res.status, data);
-        if (msgEl) msgEl.textContent = data.message || ("Server error: " + res.status);
-        return;
-      }
+     if (!res.ok) {
+  console.error("POST /api/posts/create failed:", res.status, data);
+
+  let message = data?.message;
+
+  if (!message) {
+    if (res.status === 403) {
+      message = "You have reached your posting limit for today.";
+    } else if (res.status === 400) {
+      message = "Invalid post data.";
+    } else {
+      message = "Server error. Please try again.";
+    }
+  }
+
+  if (msgEl) msgEl.textContent = message;
+  return;
+}
+
 
       // success -> reload
       if (msgEl) msgEl.textContent = data.message || "Posted";
