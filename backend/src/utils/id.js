@@ -1,3 +1,3 @@
 exports.generateId = () => {
-  return Date.now(); // unique enough for your project
+  return Math.floor(Date.now() / 1000); // seconds, fits INT
 };
