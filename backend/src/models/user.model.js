@@ -20,13 +20,21 @@ async function searchByName(q) {
   );
   return rows;
 }
+// simple unique id generator (safe for college projects)
+function generateId() {
+  return Math.floor(Date.now() / 1000); // unix timestamp
+}
+
 async function createUser(name, email, passwordHash) {
-  const [result] = await db.query(
-    "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-    [name, email, passwordHash]
+  const id = generateId();
+
+  await db.query(
+    "INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)",
+    [id, name, email, passwordHash]
   );
+
   return {
-    id: result.insertId,
+    id,
     name,
     email,
   };
