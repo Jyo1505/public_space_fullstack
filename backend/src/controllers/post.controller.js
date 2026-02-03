@@ -26,20 +26,25 @@ exports.createPost = async (req, res) => {
     if (!content_text) return res.status(400).json({ message: "Post content is required" });
 
     // detect file uploaded by multer
-    let media_url = null;
-    let media_type = "none";
-    if (req.file) {
-      console.log("createPost: received file", req.file.filename, req.file.mimetype);
-      // assuming you serve uploads with app.use('/uploads', express.static(...))
-     media_url = `${process.env.BACKEND_URL}/uploads/${req.file.filename}`;
+   let media_url = null;
+let media_type = "none";
 
-      if (req.file.mimetype.startsWith("image/")) media_type = "image";
-      else if (req.file.mimetype.startsWith("video/")) media_type = "video";
-      else media_type = "file";
-    } else if (req.body.media_url) {
-      media_url = req.body.media_url;
-      media_type = "link";
-    }
+if (req.file) {
+  // 🔥 Cloudinary gives permanent URL here
+  media_url = req.file.path;
+
+  if (req.file.mimetype.startsWith("image/")) {
+    media_type = "image";
+  } else if (req.file.mimetype.startsWith("video/")) {
+    media_type = "video";
+  } else {
+    media_type = "file";
+  }
+} else if (req.body.media_url) {
+  media_url = req.body.media_url;
+  media_type = "link";
+}
+
 
     // check post limits (re-using your existing helper)
     const friendCount = await Friend.getFriendCount(userId);
@@ -73,12 +78,12 @@ exports.deletePost = async (req, res) => {
     // delete DB record and optionally remove file from disk
     await Post.deleteById(postId); // implement in model
     // if post.media_url points to /uploads/<file>, remove file
-    if (post.media_url && post.media_url.startsWith("/uploads/")) {
-      const fs = require('fs');
-      const path = require('path');
-      const filePath = path.join(__dirname, '..', '..', post.media_url);
-      fs.unlink(filePath, err => { if (err) console.warn('file delete error',err); });
-    }
+    // if (post.media_url && post.media_url.startsWith("/uploads/")) {
+    //   const fs = require('fs');
+    //   const path = require('path');
+    //   const filePath = path.join(__dirname, '..', '..', post.media_url);
+    //   fs.unlink(filePath, err => { if (err) console.warn('file delete error',err); });
+    // }
 
     return res.json({ message: "Post deleted" });
   } catch (err) {
