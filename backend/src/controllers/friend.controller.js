@@ -6,45 +6,35 @@ const User = require("../models/user.model");
 exports.sendRequest = async (req, res) => {
   try {
     const fromUserId = req.user.id;
-    const { name } = req.body;
+    const { toUserId } = req.body; // 🔥 ID, not name
 
-    if (!name) {
-      return res.status(400).json({ message: "Friend name is required" });
+    if (!toUserId) {
+      return res.status(400).json({ message: "Target user ID is required" });
     }
 
-    // Find user by exact name OR partial match (first match)
-    // If you added findByName to user.model: use that, otherwise query DB directly
-    const User = require("../models/user.model");
-
-    // try exact match first
-    let toUser = await User.findByName(name);
-
-    // if not found, try partial match (first one)
-    if (!toUser) {
-      const db = require("../config/db");
-      const [rows] = await db.query(
-        "SELECT * FROM users WHERE name LIKE ? LIMIT 1",
-        [`%${name}%`]
-      );
-      toUser = rows[0];
+    // ✅ correct self-check
+    if (Number(fromUserId) === Number(toUserId)) {
+      return res.status(400).json({ message: "You cannot add yourself" });
     }
 
+    // Optional: ensure target user exists
+    const toUser = await User.findById(toUserId);
     if (!toUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (toUser.id === fromUserId) {
-      return res.status(400).json({ message: "You cannot add yourself" });
-    }
+    await Friend.sendRequest(fromUserId, toUserId);
 
-    await Friend.sendRequest(fromUserId, toUser.id);
-
-    res.json({ message: "Friend request sent", to_user: { id: toUser.id, name: toUser.name, email: toUser.email } });
+    res.json({
+      message: "Friend request sent",
+      to_user: { id: toUser.id, name: toUser.name }
+    });
   } catch (err) {
-    console.error("sendRequest error:", err.message || err);
+    console.error("sendRequest error:", err);
     res.status(400).json({ message: err.message || "Error sending request" });
   }
 };
+
 
 
 exports.getIncomingRequests = async (req, res) => {

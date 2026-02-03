@@ -669,11 +669,9 @@ listEl.innerHTML = "";
   }
 }
 
-// fetch other users and render clickable list
-// loadOtherUsers - quick fix (client only)
 async function loadOtherUsers() {
   try {
-    const res = await fetch(API_BASE +"/api/users/list", { headers: authHeader });
+    const res = await fetch(API_BASE + "/api/users/list", { headers: authHeader });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.warn("/api/users/list failed", data);
@@ -685,53 +683,55 @@ async function loadOtherUsers() {
     ul.innerHTML = "";
 
     (data.users || []).forEach(u => {
-      // Only show name (not email). Keep user id in data-id for potential use
       const li = document.createElement("li");
-      li.innerHTML = `${escapeHtml(u.name)} <button class="quick-send" data-name="${escapeHtml(u.name)}" data-id="${u.id}">Send Request</button>`;
+      li.innerHTML = `
+        ${escapeHtml(u.name)}
+        <button class="quick-send" data-id="${u.id}">
+          Send Request
+        </button>
+      `;
       ul.appendChild(li);
     });
 
     // attach quick-send handlers
     ul.querySelectorAll(".quick-send").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const name = btn.dataset.name;
-    if (!name) return alert("User name missing");
+      btn.addEventListener("click", async () => {
+        const toUserId = btn.dataset.id;
+        if (!toUserId) return alert("User ID missing");
 
-    btn.disabled = true;
-    btn.textContent = "Sending...";
+        btn.disabled = true;
+        btn.textContent = "Sending...";
 
-    try {
-      const res = await fetch(API_BASE +"/api/friends/request", {
-        method: "POST",
-        headers: authHeader,
-        body: JSON.stringify({ name })
+        try {
+          const res = await fetch(API_BASE + "/api/friends/request", {
+            method: "POST",
+            headers: authHeader,
+            body: JSON.stringify({ toUserId }) // ✅ FIX
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            alert(data.message || "Request failed");
+            btn.disabled = false;
+            btn.textContent = "Send Request";
+            return;
+          }
+
+          btn.textContent = "Request Sent";
+          btn.disabled = true;
+
+          await loadIncomingRequests();
+          await loadFriends();
+
+        } catch (err) {
+          console.error("send request error", err);
+          alert("Network error");
+          btn.disabled = false;
+          btn.textContent = "Send Request";
+        }
       });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        alert(data.message || "Request failed");
-        btn.disabled = false;
-        btn.textContent = "Send Request";
-        return;
-      }
-
-      // ✅ success UI feedback
-      btn.textContent = "Request Sent";
-      btn.disabled = true;
-
-      // refresh lists
-      await loadIncomingRequests();
-      await loadFriends();
-
-    } catch (err) {
-      console.error("send request error", err);
-      alert("Network error");
-      btn.disabled = false;
-      btn.textContent = "Send Request";
-    }
-  });
-});
+    });
 
   } catch (err) {
     console.error("loadOtherUsers error:", err);
