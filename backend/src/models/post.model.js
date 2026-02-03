@@ -1,14 +1,19 @@
 const db = require("../config/db");
+const { generateId } = require("../utils/id");
 
 async function createPost(userId, contentText, mediaUrl, mediaType) {
-  const [result] = await db.query(
-    "INSERT INTO posts (user_id, content_text, media_url, media_type) VALUES (?, ?, ?, ?)",
-    [userId, contentText, mediaUrl, mediaType]
+  const id = generateId();
+
+  await db.query(
+    `INSERT INTO posts (id, user_id, content_text, media_url, media_type)
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, userId, contentText, mediaUrl, mediaType]
   );
-  return result.insertId;
+
+  return id;
 }
+
 async function findById(postId) {
-  // returns single post row or null
   const [rows] = await db.query(
     `SELECT p.*, u.name AS user_name, u.id AS user_id
      FROM posts p
@@ -16,8 +21,9 @@ async function findById(postId) {
      WHERE p.id = ? LIMIT 1`,
     [postId]
   );
-  return rows && rows.length ? rows[0] : null;
+  return rows[0] || null;
 }
+
 async function getTodayPostCount(userId) {
   const [rows] = await db.query(
     `SELECT COUNT(*) AS count
@@ -38,8 +44,8 @@ async function getAllPosts() {
   );
   return rows;
 }
-async function getPostsWithMeta(userId) {
-  // fetch posts + like_count + whether current user liked them + limited comments
+
+async function getPostsWithMeta() {
   const [posts] = await db.query(
     `SELECT p.id, p.content_text, p.media_url, p.media_type, p.created_at,
             u.id AS user_id, u.name AS user_name,
@@ -51,26 +57,17 @@ async function getPostsWithMeta(userId) {
   );
   return posts;
 }
-async function getLikeCountForPosts() {
-  const [rows] = await db.query(
-    `SELECT post_id, COUNT(*) AS likes
-     FROM likes
-     GROUP BY post_id`
-  );
-  return rows;
-}
+
 async function deleteById(id) {
   const [r] = await db.query("DELETE FROM posts WHERE id = ?", [id]);
   return r.affectedRows;
 }
 
-
 module.exports = {
   createPost,
   getTodayPostCount,
   getAllPosts,
-  getLikeCountForPosts,
   getPostsWithMeta,
-   findById,
-   deleteById,
+  findById,
+  deleteById,
 };
