@@ -17,6 +17,9 @@ app.use(cors());
 app.get("/", (req, res) => {
   res.send("🚀 Public Space Backend is Running");
 });
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
 // Health check
 app.get("/api", (req, res) => {
   res.send("Backend API is running ✅");

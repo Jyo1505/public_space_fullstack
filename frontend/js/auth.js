@@ -1,4 +1,9 @@
 const API_BASE = "https://public-space-fullstack-1.onrender.com";
+window.addEventListener("load", () => {
+  fetch(`${API_BASE}/health`)
+    .then(() => console.log("Backend awake"))
+    .catch(() => console.log("Backend still waking"));
+});
 // Tabs
 const tabLogin = document.getElementById("tab-login");
 const tabRegister = document.getElementById("tab-register");
